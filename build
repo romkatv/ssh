@@ -1,0 +1,54 @@
+#!/bin/sh
+#
+# To create a patch:
+#
+#   $ cp sshconnect.c{,.new}
+#   $ $EDITOR sshconnect.c.new  # make changes
+#   $ diff -u sshconnect.c{.new,}
+#
+# Note that the patch has a mix of tabs and spaces.
+
+docker run -v $PWD:/out --rm ubuntu:focal bash -uexs <<\END
+sed -i -E 's/^# *(deb-src .* main restricted)$/\1/' /etc/apt/sources.list
+apt-get update
+apt-get upgrade
+apt-get install -y devscripts
+apt-get build-dep -y openssh-client
+
+mkdir ~/openssh-client
+cd ~/openssh-client
+apt-get source openssh-client
+cd openssh-*
+
+patch -u sshconnect.c <<\PATCH
+--- sshconnect.c	2020-06-11 18:52:57.000000000 +0000
++++ sshconnect.c.new	2020-06-11 18:55:05.008967216 +0000
+@@ -823,10 +823,6 @@
+ 				    "address '%.128s' to the list of known "
+ 				    "hosts (%.500s).", type, ip,
+ 				    user_hostfiles[0]);
+-			else
+-				logit("Warning: Permanently added the %s host "
+-				    "key for IP address '%.128s' to the list "
+-				    "of known hosts.", type, ip);
+ 		} else if (options.visual_host_key) {
+ 			fp = sshkey_fingerprint(host_key,
+ 			    options.fingerprint_hash, SSH_FP_DEFAULT);
+@@ -937,9 +933,6 @@
+ 		if (!r)
+ 			logit("Failed to add the host to the list of known "
+ 			    "hosts (%.500s).", user_hostfiles[0]);
+-		else
+-			logit("Warning: Permanently added '%.200s' (%s) to the "
+-			    "list of known hosts.", hostp, type);
+ 		break;
+ 	case HOST_REVOKED:
+ 		error("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+PATCH
+
+cd debian
+debuild -b -uc -us
+grep -qsF 'Warning: Permanently added' openssh-client/usr/bin/ssh && exit
+(( $? == 1 )) || exit
+cp ../../openssh-client_*_amd64.deb /out/
+END
