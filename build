@@ -8,10 +8,10 @@
 #
 # Note that the patch has a mix of tabs and spaces.
 
-docker run -v $PWD:/out --rm ubuntu:focal bash -uexs <<\END
+docker run -v $PWD:/out -e DEBIAN_FRONTEND=noninteractive --rm ubuntu:focal bash -uexc "$(cat <<\END
 sed -i -E 's/^# *(deb-src .* main restricted)$/\1/' /etc/apt/sources.list
 apt-get update
-apt-get upgrade
+apt-get upgrade -y
 apt-get install -y devscripts
 apt-get build-dep -y openssh-client
 
@@ -52,3 +52,4 @@ grep -qsF 'Warning: Permanently added' openssh-client/usr/bin/ssh && exit
 (( $? == 1 )) || exit
 cp ../../openssh-client_*_amd64.deb /out/
 END
+)"
