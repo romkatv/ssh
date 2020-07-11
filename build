@@ -48,7 +48,7 @@ PATCH
 
 cd debian
 debuild -b -uc -us
-grep -qsF 'Warning: Permanently added' openssh-client/usr/bin/ssh && exit
+grep -qsF 'Warning: Permanently added' openssh-client/usr/bin/ssh && exit 1
 (( $? == 1 )) || exit
 cp ../../openssh-client_*_amd64.deb /out/
 END
