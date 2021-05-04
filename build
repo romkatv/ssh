@@ -8,7 +8,18 @@
 #
 # Note that the patch has a mix of tabs and spaces.
 
-docker run -v $PWD:/out -e DEBIAN_FRONTEND=noninteractive --rm ubuntu:focal bash -uexc "$(cat <<\END
+if [ "${DOCKER_HOST-}" = 'tcp://localhost:2375' ]; then
+	# WSL1 with Docker Desktop on Windows.
+	out_dir="$(wslpath -w .)" || exit
+	if [ -z "${out_dir##\\*}" ]; then
+		>&2 echo 'error: the current directory must be on nfs'
+		exit 1
+	fi
+else
+	out_dir="$(pwd -P)"
+fi
+
+docker run -v "$out_dir":/out -e DEBIAN_FRONTEND=noninteractive --rm ubuntu:focal bash -uexc "$(cat <<\END
 sed -i -E 's/^# *(deb-src .* main restricted)$/\1/' /etc/apt/sources.list
 apt-get update
 apt-get upgrade -y
